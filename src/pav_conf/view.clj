@@ -2,7 +2,7 @@
   "Main view with actions."
   (:import [com.vaadin.server Sizeable$Unit FontAwesome]
            [com.vaadin.ui LegacyWindow Label VerticalLayout HorizontalLayout Alignment HorizontalSplitPanel
-            Tree Label Table Button])
+            Tree Label Table Button CssLayout])
   (:require [pav-conf.conf :as c]
             [pav-conf.convox :as x]
             [pav-conf.events :as e]))
@@ -70,9 +70,12 @@
 
 (defn- app-button
   "Button with some common options."
-  [^String name icon]
-  (doto (Button. name)
-    (.setIcon icon)))
+  [^String name description icon]
+  (let [btn (doto (Button. name)
+              (.setIcon icon))]
+    (when description
+      (.setDescription btn description))
+    btn))
 
 (defn- update-app-details
   "Fetch application details and paint table with them."
@@ -80,14 +83,17 @@
   (let [env      (x/get-app-environment (c/read-creds) node)
         table    (Table.)
         btn-layout (HorizontalLayout.)
-        add-btn  (app-button "Add" FontAwesome/PLUS)
-        edit-btn (app-button "Edit" FontAwesome/EDIT)
-        del-btn  (app-button "Delete" FontAwesome/MINUS)
-        prom-btn (app-button "Promote" FontAwesome/CLOUD_UPLOAD)]
+        add-btn  (app-button "Add" "Add new variable with value." FontAwesome/PLUS)
+        edit-btn (app-button "Edit" "Edit selected variable." FontAwesome/EDIT)
+        del-btn  (app-button "Delete" "Delete selected variables." FontAwesome/MINUS)
+        prom-btn (app-button "Promote" "Push variables, creating new application release." FontAwesome/CLOUD_UPLOAD)
+        page-len (if (>= (count env) 10)
+                   10
+                   0)]
 
     (doto table
       (.setSizeFull)
-      (.setPageLength 10)
+      (.setPageLength page-len)
       (.setSelectable true)
       (.addContainerProperty "Variable" String nil)
       (.addContainerProperty "Value" String nil))
@@ -99,9 +105,11 @@
 
     (doto btn-layout
       (.setSpacing true)
-      (.addComponent add-btn)
-      (.addComponent edit-btn)
-      (.addComponent del-btn)
+      (.addComponent (doto (CssLayout.)
+                       (.setStyleName "v-component-group")
+                       (.addComponent add-btn)
+                       (.addComponent edit-btn)
+                       (.addComponent del-btn)))
       (.addComponent prom-btn))
 
     (doto view

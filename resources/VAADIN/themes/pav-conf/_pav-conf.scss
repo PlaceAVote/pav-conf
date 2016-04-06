@@ -1,8 +1,10 @@
 /* -*- mode: css; indent-tabs-mode: nil -*- */
 @import "../valo/valo.scss";
+@import "login.scss";
 
 @mixin pav-conf {
     @include valo;
+    @include pav-conf-login;
     
     .main-view {
     }
@@ -10,6 +12,7 @@
     .right-view {
         padding-left: 10px;
         padding-right: 10px;
+        padding-bottom: 5px;
     }
     
     .main-view-header {

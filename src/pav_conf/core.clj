@@ -7,13 +7,16 @@
            com.vaadin.sass.SassCompiler)
   (:require [pav-conf.jetty :as jetty]
             [pav-conf.conf :as c]
-            [pav-conf.view :as v]
+            [pav-conf.view :refer [build-main-view!]]
+            [pav-conf.login-view :refer  [build-login-view!]]
             [clojure.java.io :as io]))
 
 (defn- main-app
   "Initialize master window. Vaadin entry point."
   [^LegacyApplication app]
-  (let [win (-> "PAV Configuration Manager" LegacyWindow. v/build-main-view!)]
+  (let [win (LegacyWindow. "PAV Configuration Manager")
+        success-login #(build-main-view! win)
+        win (lv/build-login-view! win success-login)]
     (doto app
       (.setTheme "pav-conf")
       (.setMainWindow win))))
