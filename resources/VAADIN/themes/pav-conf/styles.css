@@ -12933,19 +12933,13 @@ div.v-layout.v-horizontal.v-widget {
 	overflow: hidden;
 }
 
-.pav-conf .main-view {
-	padding: 10px;
-}
-
 .pav-conf .right-view {
 	padding-left: 10px;
+	padding-right: 10px;
 }
 
 .pav-conf .main-view-header {
-	background-color: #4b4b4b;
-	color: #ffffff;
-	padding: 10px;
-	font-size: 130%;
+	padding-left: 10px;
 }
 
 .pav-conf .main-view-footer {

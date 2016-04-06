@@ -113,6 +113,12 @@ necessary details, painting own table."
     (.setChildrenAllowed name false)
     (.setItemIcon name icon)))
 
+(defn- tree-expand-all
+  "Expand tree."
+  [^Tree tree]
+  (doseq [id (.getItemIds tree)]
+    (.expandItem tree id)))
+
 (defn- build-apps-tree
   "Create applications tree."
   [^VerticalLayout right-view]
@@ -124,11 +130,14 @@ necessary details, painting own table."
       (push-node! tree root (get item "name" "<unknown>") (if (x/running? item)
                                                             FontAwesome/CHECK
                                                             FontAwesome/CLOSE)))
+    (tree-expand-all tree)
     ;; on every tree item click, this event handler is invoked
     (e/with-tree-item-event tree
       (let [node  (.getValue tree)
             root? (not (.getParent tree node))]
         (update-right-view! right-view node root?)))
+    ;; select root to populate right view with rack details
+    (.setValue tree root)
     tree))
 
 (defn build-main-view!
@@ -138,6 +147,7 @@ necessary details, painting own table."
         right-view (doto (VerticalLayout.)
                      (.setStyleName "right-view"))
         toolbar (doto (HorizontalLayout.)
+                  (.setStyleName "main-view-header")
                   (.setWidth "100%")
                   (.setHeight "50px")
                   (.addComponent (doto (Label. "PAV Configuration Manager")
