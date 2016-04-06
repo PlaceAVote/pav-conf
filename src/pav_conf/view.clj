@@ -2,7 +2,7 @@
   "Main view with actions."
   (:import [com.vaadin.server Sizeable$Unit FontAwesome]
            [com.vaadin.ui LegacyWindow Label VerticalLayout HorizontalLayout Alignment HorizontalSplitPanel
-            Tree Label Table])
+            Tree Label Table Button])
   (:require [pav-conf.conf :as c]
             [pav-conf.convox :as x]
             [pav-conf.events :as e]))
@@ -16,6 +16,7 @@
         system     (x/get-system (c/read-creds))
         inst-table (Table. "Instances")
         sys-table  (Table. "System details")]
+
     (doto inst-table
       (.setSizeFull)
       (.setSelectable true)
@@ -28,7 +29,7 @@
       (.addContainerProperty "Public IP" String nil)
       (.addContainerProperty "Private IP" String nil)
       (.addContainerProperty "Status" String nil))
-    
+
     (doto sys-table
       (.setSizeFull)
       (.setSelectable true)
@@ -44,7 +45,7 @@
     (loop [instances instances, i 0]
       (when-let [instance (first instances)]
         (.addItem inst-table
-                  (to-array 
+                  (to-array
                    (map (fn [i]
                           (let [val (get instance i)]
                             (if (= i "memory")
@@ -53,7 +54,7 @@
                         ["id" "processes" "cpu" "memory" "agent" "public-ip" "private-ip" "status"]))
                   i)
         (recur (rest instances) (inc i))))
-    
+
     ;; populate system details table
     (as-> ["name" "region" "count" "version" "type" "status"] $
          (map system $)
@@ -67,11 +68,22 @@
       (.addComponent inst-table)
       (.addComponent sys-table))))
 
+(defn- app-button
+  "Button with some common options."
+  [^String name icon]
+  (doto (Button. name)
+    (.setIcon icon)))
+
 (defn- update-app-details
   "Fetch application details and paint table with them."
   [^VerticalLayout view node]
-  (let [env   (x/get-app-environment (c/read-creds) node)
-        table (Table.)]
+  (let [env      (x/get-app-environment (c/read-creds) node)
+        table    (Table.)
+        btn-layout (HorizontalLayout.)
+        add-btn  (app-button "Add" FontAwesome/PLUS)
+        edit-btn (app-button "Edit" FontAwesome/EDIT)
+        del-btn  (app-button "Delete" FontAwesome/MINUS)
+        prom-btn (app-button "Promote" FontAwesome/CLOUD_UPLOAD)]
 
     (doto table
       (.setSizeFull)
@@ -79,17 +91,26 @@
       (.setSelectable true)
       (.addContainerProperty "Variable" String nil)
       (.addContainerProperty "Value" String nil))
-    
+
     (loop [env env, i 0]
       (when-let [kv (first env)]
         (.addItem table (to-array kv) i)
         (recur (rest env) (inc i))))
 
+    (doto btn-layout
+      (.setSpacing true)
+      (.addComponent add-btn)
+      (.addComponent edit-btn)
+      (.addComponent del-btn)
+      (.addComponent prom-btn))
+
     (doto view
       (.setSpacing true)
       (.addComponent (doto (Label. "Application variables")
                        (.setStyleName "h2")))
-      (.addComponent table))))
+      (.addComponent table)
+      (.addComponent btn-layout)
+      (.setComponentAlignment btn-layout Alignment/TOP_RIGHT))))
 
 (defn- update-right-view!
   "Repaint right view with table and other details, depending on tree node.
