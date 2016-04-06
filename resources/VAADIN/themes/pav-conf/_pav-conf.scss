@@ -1,0 +1,41 @@
+/* -*- mode: css; indent-tabs-mode: nil -*- */
+@import "../valo/valo.scss";
+
+@mixin pav-conf {
+    @include valo;
+    
+    .main-view {
+        padding: 10px;
+    }
+    
+    .right-view {
+        padding-left: 10px;
+    }
+    
+    .main-view-header {
+        background-color: #4b4b4b;
+        /* color: #f5f5f5; */
+        color: #ffffff;
+        padding: 10px;
+        font-size: 130%;
+    }
+    
+    .main-view-footer {
+        text-align: center;
+        font-size: 80%;
+        padding-top: 2em;
+        /* for v-button-link or border will go out of bounds */
+        padding-bottom: 3px;
+
+        .v-label {
+            /* looks like label forces 'left' alignment, so be explicit here */
+            text-align: center;
+        }
+       
+        /* disable huge padding for link buttons */
+        .v-button-link {
+            height: auto;
+            padding: 0;
+        }
+    }
+}
