@@ -16,8 +16,8 @@
   [^LegacyApplication app]
   (let [win (LegacyWindow. "PAV Configuration Manager")
         success-login #(build-main-view! win)]
-    ;(build-main-view! win)
-    (build-login-view! win success-login)
+    (build-main-view! win)
+    ;(build-login-view! win success-login)
     (doto app
       (.setTheme "pav-conf")
       (.setMainWindow win))))

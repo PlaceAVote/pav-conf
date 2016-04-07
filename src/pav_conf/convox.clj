@@ -9,9 +9,6 @@
        :doc "Internal version of application, to match (or be less than) Convox API."}
   convox-cli-version "20160210165552")
 
-;; convox-pav-dev-629155429.us-east-1.elb.amazonaws.com
-;; DjJRSfKPKmAsZRlEsjDNDNCxBCjNtQ
-
 (defn- my-get
   "Common get version with standard options. Parse response string as json
 if applicable."

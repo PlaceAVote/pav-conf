@@ -21,13 +21,13 @@
 
 (defn- update-rack-details
   "Fetch rack details and paint table with them."
-  [^VerticalLayout view]
-  (log/info "Fetching rack details...")
-  (let [instances  (x/get-instances (c/read-creds))
-        system     (x/get-system (c/read-creds))
+  [^VerticalLayout view rack]
+  (log/infof "Fetching rack details for %s..." rack)
+  (let [creds      (c/read-creds rack)
+        instances  (x/get-instances creds)
+        system     (x/get-system creds)
         inst-table (Table. "Instances")
         sys-table  (Table. "System details")]
-
     (doto inst-table
       (.setSizeFull)
       (.setSelectable true)
@@ -83,7 +83,7 @@
 
     (doto view
       (.setSpacing true)
-      (.addComponent (doto (Label. "Rack details")
+      (.addComponent (doto (Label. (format "Rack details for %s" rack))
                        (.setStyleName "h2")))
       (.addComponent inst-table)
       (.addComponent sys-table))))
@@ -116,20 +116,18 @@ be keys and elements from the second column values."
 
 (defn- update-app-details
   "Fetch application details and paint table with them."
-  [^VerticalLayout view node]
-  (log/infof "Fetching details for '%s' application..." node)
-  (let [env      (x/get-app-environment (c/read-creds) node)
-        table    (Table.)
+  [^VerticalLayout view rack node]
+  (log/infof "Fetching details for '%s (rack: %s)' application..." node rack)
+  (let [env        (-> rack c/read-creds (x/get-app-environment node))
+        table      (Table.)
         btn-layout (HorizontalLayout.)
-        add-btn  (app-button "Add" "Add new variable with value" FontAwesome/PLUS)
-        edit-btn (app-button "Edit" "Edit selected variable" FontAwesome/EDIT)
-        del-btn  (app-button "Delete" "Delete selected variables" FontAwesome/MINUS)
-        prom-btn (app-button "Promote" "Push variables, creating new application release" FontAwesome/CLOUD_UPLOAD)
-        tip      (doto (Label. (str (.getHtml FontAwesome/LIGHTBULB_O) " Variables will not be pushed untill you <i>Promote</i> changes"))
-                   (.setContentMode ContentMode/HTML))
-        page-len (if (>= (count env) 10)
-                   10
-                   0)]
+        add-btn    (app-button "Add" "Add new variable with value" FontAwesome/PLUS)
+        edit-btn   (app-button "Edit" "Edit selected variable" FontAwesome/EDIT)
+        del-btn    (app-button "Delete" "Delete selected variables" FontAwesome/MINUS)
+        prom-btn   (app-button "Promote" "Push variables, creating new application release" FontAwesome/CLOUD_UPLOAD)
+        tip        (doto (Label. (str (.getHtml FontAwesome/LIGHTBULB_O) " Variables will not be pushed untill you <i>Promote</i> changes"))
+                     (.setContentMode ContentMode/HTML))
+        page-len   (if (>= (count env) 10) 10 0)]
 
     (e/with-button-event add-btn
       (ve/show-win
@@ -190,25 +188,34 @@ be keys and elements from the second column values."
 
 (defn- update-right-view!
   "Repaint right view with table and other details, depending on tree node.
-If root is selected, that means user clicked 'Rack' and we will fetch all rack server instances, painting
+If root is selected, that means user clicked on rack name and we will fetch all rack server instances, painting
 specific table. If any of nodes is selected, that means user clicked specific application, fetching
 necessary details, painting own table."
-  [^VerticalLayout view node root?]
+  [^Tree tree ^VerticalLayout view id]
   (.removeAllComponents view)
-  (if root?
-    (update-rack-details view)
-    (update-app-details view node)))
+  (let [caption (.getItemCaption tree id)
+        root    (.getParent tree id)]
+  ;; Here is how naming scheme works and how is accessed. Vaadin Tree class support adding only unique ID's
+  ;; and when is added another same one, nodes from the old one are overwritten. Because of that, Tree root
+  ;; nodes are labeled as ID (Vaadin for Tree node first display caption, then ID as label) and childs are
+  ;; having unique ID since racks can have the same applications. Child labels are stored as captions.
+  (if-not root
+    (update-rack-details view id)
+    (update-app-details view root caption))))
 
 ;;; left tree
 
 (defn- push-node!
   "Append node on given tree, with given root."
   [^Tree tree ^String root ^String name icon]
-  (doto tree
-    (.addItem name)
-    (.setParent name root)
-    (.setChildrenAllowed name false)
-    (.setItemIcon name icon)))
+  ;; rely on this, instead of (.addItem tree name) since we can have
+  ;; multiple entries with the same name, which Tree forbids when the name is used as ID
+  (let [unique-id (.addItem tree)]
+    (doto tree
+      (.setItemCaption unique-id name)
+      (.setParent unique-id root)
+      (.setChildrenAllowed unique-id false)
+      (.setItemIcon unique-id icon))))
 
 (defn- tree-expand-all
   "Expand tree."
@@ -216,25 +223,34 @@ necessary details, painting own table."
   (doseq [id (.getItemIds tree)]
     (.expandItem tree id)))
 
-(defn- build-apps-tree
-  "Create applications tree."
-  [^VerticalLayout right-view]
-  (let [tree (Tree. "rack-tree")
-        root "Rack"
-        data (x/get-apps (c/read-creds))]
-    (.addItem tree root)
+(defn- add-rack-to-tree!
+  "Fill tree with new rack."
+  [^Tree tree rack]
+  (.addItem tree rack)
+  (when-let [data (try
+                    (-> rack c/read-creds x/get-apps)
+                    (catch Exception e
+                      (log/errorf e "Failed to fetch details for '%s' rack" rack)))]
     (doseq [item data]
-      (push-node! tree root (get item "name" "<unknown>") (if (x/running? item)
+      (push-node! tree rack (get item "name" "<unknown>") (if (x/running? item)
                                                             FontAwesome/CHECK
-                                                            FontAwesome/CLOSE)))
+                                                            FontAwesome/CLOSE)))))
+
+(defn- build-apps-tree
+  "Create applications tree, filling it with all available racks."
+  [^VerticalLayout right-view]
+  (let [tree  (Tree.)
+        racks (c/all-convox-racks)]
+
+    (doseq [r racks]
+      (add-rack-to-tree! tree r))
+
     (tree-expand-all tree)
+
     ;; on every tree item click, this event handler is invoked
     (e/with-tree-item-event tree
-      (let [node  (.getValue tree)
-            root? (not (.getParent tree node))]
-        (update-right-view! right-view node root?)))
-    ;; select root to populate right view with rack details
-    (.setValue tree root)
+      (when-let [id (.getValue tree)]
+        (update-right-view! tree right-view id)))
     tree))
 
 (defn build-main-view!
