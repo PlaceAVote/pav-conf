@@ -7,8 +7,8 @@
  :production true
 
  ;; convox options
- :convox-api-host "grid.convox.com"
- :convox-api-key  "bcef03e4-5dfb-4857-86b4-bbd929087a2b"
+ :convox-api-host "convox-pav-dev-629155429.us-east-1.elb.amazonaws.com"
+ :convox-api-key  "DjJRSfKPKmAsZRlEsjDNDNCxBCjNtQ"
 
  ;; hardcoded user database 
  :users [["admin" "uU3bUYFeEfaBprXz"]
