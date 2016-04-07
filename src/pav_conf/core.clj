@@ -15,8 +15,9 @@
   "Initialize master window. Vaadin entry point."
   [^LegacyApplication app]
   (let [win (LegacyWindow. "PAV Configuration Manager")
-        success-login #(build-main-view! win)
-        win (lv/build-login-view! win success-login)]
+        success-login #(build-main-view! win)]
+    ;(build-main-view! win)
+    (build-login-view! win success-login)
     (doto app
       (.setTheme "pav-conf")
       (.setMainWindow win))))

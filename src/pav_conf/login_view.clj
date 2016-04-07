@@ -5,7 +5,8 @@
            com.vaadin.shared.Position
            com.vaadin.ui.themes.ValoTheme)
   (:require [pav-conf.conf :as c]
-            [pav-conf.events :as e]))
+            [pav-conf.events :as e]
+            [clojure.tools.logging :as log]))
 
 (defn- display-bad-login
   "Display bad login notification."
@@ -13,6 +14,11 @@
   (doto (Notification. "Login failed" "Bad username or password" Notification/TYPE_WARNING_MESSAGE)
     (.setPosition Position/TOP_CENTER)
     (.show (Page/getCurrent))))
+
+(defn- get-ip-address
+  "Return ip address of currently serving user."
+  []
+  (-> (Page/getCurrent) .getWebBrowser .getAddress))
 
 (defn- valid-username-password?
   "Check if username/password are correct, comparing against internal database."
@@ -30,7 +36,7 @@
   (let [layout (HorizontalLayout.)
         button (doto (Button. "Sign In")
                  (.addStyleName ValoTheme/BUTTON_PRIMARY)
-                 ;(.setClickShortcut com.vaadin.event.ShortcutAction$KeyCode/ENTER nil)
+                 (.setClickShortcut com.vaadin.event.ShortcutAction$KeyCode/ENTER nil)
                  (.focus))
         username (doto (TextField. "Username")
                    (.setIcon FontAwesome/USER)
@@ -41,10 +47,14 @@
 
     (e/with-button-event button
       (let [user (.getValue username)
-            pass (.getValue password)]
+            pass (.getValue password)
+            ip   (get-ip-address)]
         (if-not (valid-username-password? user pass)
-          (display-bad-login)
+          (do
+            (display-bad-login)
+            (log/warnf "Bad login access for '%s' from IP: %s" user ip))
           (when on-login-success
+            (log/infof "Successfull login for '%s' from IP: %s" user ip)
             (on-login-success)))))
 
     (doto layout

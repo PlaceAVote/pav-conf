@@ -2,7 +2,7 @@
   :description "Application for easier configuration of Convox environment variables"
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [clj-http "2.1.0"]
-                 [org.clojure/data.json "0.2.6"]
+                 [cheshire "5.5.0"]
                  [com.vaadin/vaadin-server "7.6.4"]
                  [com.vaadin/vaadin-client-compiled "7.6.4"]
                  [com.vaadin/vaadin-themes "7.6.4"]
