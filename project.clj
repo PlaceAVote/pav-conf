@@ -1,4 +1,4 @@
-(defproject pav-conf "0.1.0-SNAPSHOT"
+(defproject pav-conf "0.2.0-SNAPSHOT"
   :description "Application for easier configuration of Convox environment variables"
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [clj-http "2.1.0"]
