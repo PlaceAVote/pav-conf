@@ -6,18 +6,14 @@
  ;; setting up production to true will speed up Vaadin requests
  :production true
 
- ;; convox options
- :convox-api-host "convox-pav-dev-629155429.us-east-1.elb.amazonaws.com"
- :convox-api-key  "DjJRSfKPKmAsZRlEsjDNDNCxBCjNtQ"
-
- ;; convox options; every member of a vector is a separate rack with common options
+ ;; Convox options; every member of a vector is a separate rack with common options.
+ ;; If password is not set, it will query environment for passwords, following this pattern:
+ ;; CONVOX_CREDS="Dev:PASS1;Production:PASS2"
  :convox-hosts [{:name "Dev"
-                 :host "convox-pav-dev-629155429.us-east-1.elb.amazonaws.com"
-                 :password "DjJRSfKPKmAsZRlEsjDNDNCxBCjNtQ"}
+                 :host "convox-pav-dev-629155429.us-east-1.elb.amazonaws.com"}
 
                 {:name "Production"
-                 :host "convox-165269537.us-west-2.elb.amazonaws.com"
-                 :password "DjJRSfKPKmAsZRlEsjDNDNCxBCjNtQ"}]
+                 :host "convox-165269537.us-west-2.elb.amazonaws.com"}]
 
  ;; hardcoded user database
  :users [["admin" "uU3bUYFeEfaBprXz"]
