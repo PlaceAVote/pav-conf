@@ -138,7 +138,7 @@ be keys and elements from the second column values."
 
 (defn- update-app-details-with-data
   "Fetch application details using provided environment variables."
-  [^VerticalLayout view env node]
+  [^VerticalLayout view creds node env]
   (let [table      (Table.)
         btn-layout (HorizontalLayout.)
         add-btn    (app-button "Add" "Add new variable with value" FontAwesome/PLUS)
@@ -169,7 +169,7 @@ be keys and elements from the second column values."
 
     (e/with-button-event prom-btn
       (let [all (table->map table "Variable" "Value")]
-        (let [[release-id _] (x/set-env (c/read-creds) node all)]
+        (let [[release-id _] (x/set-env creds node all)]
           (display-notification "Variables applied"
                                 (format "Variables promoted to %s release." release-id)))))
 
@@ -211,8 +211,9 @@ be keys and elements from the second column values."
   [^VerticalLayout view rack node]
   (log/infof "Fetching details for '%s (rack: %s)' application..." node rack)
   (try
-    (let [env (-> rack c/read-creds (x/get-app-environment node))]
-      (update-app-details-with-data view env node))
+    (let [creds (c/read-creds rack)
+          env   (x/get-app-environment creds node)]
+      (update-app-details-with-data view creds node env))
     (catch Exception e
       (log/errorf e "Failed to get application details for %s (rack: %s)" node rack)
       (let [info (ex-data e)]
