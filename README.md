@@ -15,7 +15,7 @@ in more secure manner, as environment variables. The format is in
 form:
 
 ```
-CONVOX_CREDS=NAME1:PASS1; NAME2:PASS2"
+CONVOX_CREDS="NAME1:PASS1; NAME2:PASS2"
 ```
 
 where `NAME1` and `NAME2` are environment names (in `pav-conf.edn`
