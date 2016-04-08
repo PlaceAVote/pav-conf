@@ -2,8 +2,9 @@
   "Main view with actions."
   (:import [com.vaadin.server Sizeable$Unit FontAwesome Page]
            [com.vaadin.ui LegacyWindow Label VerticalLayout HorizontalLayout Alignment HorizontalSplitPanel
-            Tree Label Table Button CssLayout Notification]
-           com.vaadin.shared.ui.label.ContentMode)
+            Tree Label Table Button CssLayout Notification AbstractOrderedLayout]
+           com.vaadin.shared.ui.label.ContentMode
+           com.vaadin.ui.themes.ValoTheme)
   (:require [pav-conf.conf :as c]
             [pav-conf.convox :as x]
             [pav-conf.events :as e]
@@ -17,12 +18,17 @@
   (doto (Notification. title label Notification/TYPE_TRAY_NOTIFICATION)
     (.show (Page/getCurrent))))
 
+(defn- display-error-on-component
+  "Add error label on given component."
+  [^AbstractOrderedLayout c ^String message]
+  (.addComponent c (doto (Label. message)
+                     (.addStyleName ValoTheme/LABEL_FAILURE))))
+
 ;;; right view
 
-(defn- update-rack-details
-  "Fetch rack details and paint table with them."
-  [^VerticalLayout view rack]
-  (log/infof "Fetching rack details for %s..." rack)
+(defn- update-rack-details-with-data
+  "Fetch rack details using provided data."
+  [^VerticalLayout view rack instances system]
   (let [creds      (c/read-creds rack)
         instances  (x/get-instances creds)
         system     (x/get-system creds)
@@ -88,6 +94,22 @@
       (.addComponent inst-table)
       (.addComponent sys-table))))
 
+(defn- update-rack-details
+  "Fetch rack details and paint table with them."
+  [^VerticalLayout view rack]
+  (log/infof "Fetching rack details for %s..." rack)
+  (try
+    (let [creds     (c/read-creds rack)
+          instances (x/get-instances creds)
+          system    (x/get-system creds)]
+      (update-rack-details-with-data view rack instances system))
+    (catch Exception e
+      (log/errorf e "Failed to get rack details from %s" rack)
+      (let [info (ex-data e)]
+        (display-error-on-component view (format "Error %s (%s)"
+                                                 (:status info)
+                                                 (:body info)))))))
+
 (defn- ^Button app-button
   "Button with some common options."
   [^String name description icon]
@@ -114,12 +136,10 @@ be keys and elements from the second column values."
                           (table-prop-value table id prop2)))
       ret)))
 
-(defn- update-app-details
-  "Fetch application details and paint table with them."
-  [^VerticalLayout view rack node]
-  (log/infof "Fetching details for '%s (rack: %s)' application..." node rack)
-  (let [env        (-> rack c/read-creds (x/get-app-environment node))
-        table      (Table.)
+(defn- update-app-details-with-data
+  "Fetch application details using provided environment variables."
+  [^VerticalLayout view env node]
+  (let [table      (Table.)
         btn-layout (HorizontalLayout.)
         add-btn    (app-button "Add" "Add new variable with value" FontAwesome/PLUS)
         edit-btn   (app-button "Edit" "Edit selected variable" FontAwesome/EDIT)
@@ -185,6 +205,20 @@ be keys and elements from the second column values."
       (.addComponent table)
       (.addComponent btn-layout)
       (.setComponentAlignment btn-layout Alignment/TOP_RIGHT))))
+
+(defn- update-app-details
+  "Fetch application details and paint table with them."
+  [^VerticalLayout view rack node]
+  (log/infof "Fetching details for '%s (rack: %s)' application..." node rack)
+  (try
+    (let [env (-> rack c/read-creds (x/get-app-environment node))]
+      (update-app-details-with-data view env node))
+    (catch Exception e
+      (log/errorf e "Failed to get application details for %s (rack: %s)" node rack)
+      (let [info (ex-data e)]
+        (display-error-on-component view (format "Error %s (%s)"
+                                                 (:status info)
+                                                 (:body info)))))))
 
 (defn- update-right-view!
   "Repaint right view with table and other details, depending on tree node.
