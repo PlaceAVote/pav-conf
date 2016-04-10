@@ -11,13 +11,21 @@
             [pav-conf.login-view :refer  [build-login-view!]]
             [clojure.java.io :as io]))
 
+(defn- in-repl?
+  "Determine if we are running application in dev mode (via leiningen in REPL)
+or is run as jar."
+  [app]
+  (System/getProperty (format "%s.version" app)))
+
 (defn- main-app
   "Initialize master window. Vaadin entry point."
   [^LegacyApplication app]
   (let [win (LegacyWindow. "PAV Configuration Manager")
         success-login #(build-main-view! win)]
-    ;(build-main-view! win)
-    (build-login-view! win success-login)
+    ;; do not show login in development mode, to speed up the things a bit
+    (if (in-repl? "pav-conf")
+      (build-main-view! win)
+      (build-login-view! win success-login))
     (doto app
       (.setTheme "pav-conf")
       (.setMainWindow win))))

@@ -196,8 +196,9 @@ be keys and elements from the second column values."
                          (.addItem table (to-array [var val]) id))))))
 
     (e/with-button-event del-btn
-      (when-let [id (.getValue table)]
-        (.removeItem table id)))
+      (when-let [ids (.getValue table)]
+        (doseq [id ids]
+          (.removeItem table id))))
 
     (e/with-button-event prom-btn
       (let [all (table-exporter)]
@@ -207,6 +208,8 @@ be keys and elements from the second column values."
 
     (doto table
       (.setSizeFull)
+      ;; only this table is multiselect
+      (.setMultiSelect true)
       (.setImmediate true)
       (.setPageLength page-len)
       (.setSelectable true)
