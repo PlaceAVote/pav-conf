@@ -7,7 +7,7 @@
                  [com.vaadin/vaadin-server "7.6.4"]
                  [com.vaadin/vaadin-client-compiled "7.6.4"]
                  [com.vaadin/vaadin-themes "7.6.4"]
-				 [org.mortbay.jetty/jetty "6.1.25"]
+                 [org.mortbay.jetty/jetty "6.1.25"]
                  [org.clojure/tools.logging "0.3.0"]
                  [org.slf4j/slf4j-api "1.7.5"]
                  [org.slf4j/slf4j-log4j12 "1.7.5"]]
