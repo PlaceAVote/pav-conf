@@ -24,6 +24,17 @@
   (.addComponent c (doto (Label. message)
                      (.addStyleName ValoTheme/LABEL_FAILURE))))
 
+(defn- make-standard-table!
+  "Take table object and return table with standard options, filling with
+vector of properties with corresponding type."
+  [^Table table props]
+  (let [table (doto table
+                (.setSizeFull)
+                (.setSelectable true)
+                (.setPageLength 0))]
+    (doseq [[name klass] props]
+      (.addContainerProperty table name klass nil))))
+
 ;;; right view
 
 (defn- update-rack-details-with-data
@@ -34,29 +45,13 @@
         system     (x/get-system creds)
         inst-table (Table. "Instances")
         sys-table  (Table. "System details")]
-    (doto inst-table
-      (.setSizeFull)
-      (.setSelectable true)
-      (.setPageLength 0)
-      (.addContainerProperty "ID" String nil)
-      (.addContainerProperty "Processes" Integer nil)
-      (.addContainerProperty "CPU" Integer nil)
-      (.addContainerProperty "Memory" Double nil)
-      (.addContainerProperty "Agent" Boolean nil)
-      (.addContainerProperty "Public IP" String nil)
-      (.addContainerProperty "Private IP" String nil)
-      (.addContainerProperty "Status" String nil))
 
-    (doto sys-table
-      (.setSizeFull)
-      (.setSelectable true)
-      (.setPageLength 0)
-      (.addContainerProperty "Name" String nil)
-      (.addContainerProperty "Region" String nil)
-      (.addContainerProperty "Count" Integer nil)
-      (.addContainerProperty "Version" String nil)
-      (.addContainerProperty "Type" String nil)
-      (.addContainerProperty "Status" String nil))
+    (make-standard-table! inst-table [["ID" String] ["Processes" Integer] ["CPU" Integer]
+                                      ["Memory" Double] ["Agent" Boolean] ["Public IP" String]
+                                      ["Private IP" String] ["Status" String]])
+
+    (make-standard-table! sys-table [["Name" String] ["Region" String] ["Count" Integer]
+                                     ["Version" String] ["Type" String] ["Status" String]])
 
     ;; populate instances table
     (loop [instances instances, i 0]
@@ -145,6 +140,8 @@ be keys and elements from the second column values."
         edit-btn   (app-button "Edit" "Edit selected variable" FontAwesome/EDIT)
         del-btn    (app-button "Delete" "Delete selected variables" FontAwesome/MINUS)
         prom-btn   (app-button "Promote" "Push variables, creating new application release" FontAwesome/CLOUD_UPLOAD)
+        import-btn (app-button "Import" "Import variables from file" FontAwesome/UPLOAD)
+        export-btn (app-button "Export" "Export all current variables to file" FontAwesome/DOWNLOAD)
         tip        (doto (Label. (str (.getHtml FontAwesome/LIGHTBULB_O) " Variables will not be pushed untill you <i>Promote</i> changes"))
                      (.setContentMode ContentMode/HTML))
         page-len   (if (>= (count env) 10) 10 0)]
@@ -188,20 +185,22 @@ be keys and elements from the second column values."
 
     (doto btn-layout
       (.setSpacing true)
-      (.addComponent tip)
+      (.addComponent (doto (CssLayout.)
+                       (.setStyleName "v-component-group")
+                       (.addComponent import-btn)
+                       (.addComponent export-btn)))
       (.addComponent (doto (CssLayout.)
                        (.setStyleName "v-component-group")
                        (.addComponent add-btn)
                        (.addComponent edit-btn)
                        (.addComponent del-btn)))
-      (.addComponent prom-btn)
-      (.setComponentAlignment tip Alignment/MIDDLE_RIGHT))
+      (.addComponent prom-btn))
 
     (doto view
       (.setSpacing true)
       (.addComponent (doto (Label. (str "Variables for " node))
                        (.setStyleName "h2")))
-
+      (.addComponent tip)
       (.addComponent table)
       (.addComponent btn-layout)
       (.setComponentAlignment btn-layout Alignment/TOP_RIGHT))))
