@@ -16,6 +16,7 @@
   "Display notification."
   [title label]
   (doto (Notification. title label Notification/TYPE_TRAY_NOTIFICATION)
+    (.setStyleName "dark closable")
     (.show (Page/getCurrent))))
 
 (defn- display-error-on-component
@@ -33,7 +34,17 @@ vector of properties with corresponding type."
                 (.setSelectable true)
                 (.setPageLength 0))]
     (doseq [[name klass] props]
-      (.addContainerProperty table name klass nil))))
+      (.addContainerProperty table name klass nil))
+    table))
+
+(defn- group-buttons
+  "Take buttons and group them using CssLayout."
+  [buttons]
+  (let [layout (doto (CssLayout.)
+                 (.setStyleName "v-component-group"))]
+    (doseq [b buttons]
+      (.addComponent layout b))
+    layout))
 
 ;;; right view
 
@@ -185,15 +196,8 @@ be keys and elements from the second column values."
 
     (doto btn-layout
       (.setSpacing true)
-      (.addComponent (doto (CssLayout.)
-                       (.setStyleName "v-component-group")
-                       (.addComponent import-btn)
-                       (.addComponent export-btn)))
-      (.addComponent (doto (CssLayout.)
-                       (.setStyleName "v-component-group")
-                       (.addComponent add-btn)
-                       (.addComponent edit-btn)
-                       (.addComponent del-btn)))
+      (.addComponent (group-buttons [import-btn export-btn]))
+      (.addComponent (group-buttons [add-btn edit-btn del-btn]))
       (.addComponent prom-btn))
 
     (doto view
@@ -292,7 +296,10 @@ necessary details, painting own table."
   [^LegacyWindow win]
   (let [layout (VerticalLayout.)
         right-view (doto (VerticalLayout.)
-                     (.setStyleName "right-view"))
+                     (.setStyleName "right-view")
+                     (.addComponent (Label.
+                                     (str "Manager fully loaded. Choose one of the hosts on left pane to "
+                                          "manage configurations or select rack name to access rack details."))))
         toolbar (doto (HorizontalLayout.)
                   (.setStyleName "main-view-header")
                   (.setWidth "100%")
