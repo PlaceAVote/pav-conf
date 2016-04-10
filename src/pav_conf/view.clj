@@ -9,6 +9,7 @@
             [pav-conf.convox :as x]
             [pav-conf.events :as e]
             [pav-conf.var-editor :as ve]
+            [pav-conf.import-export :as ie]
             [clojure.string :as s]
             [clojure.tools.logging :as log]))
 
@@ -155,7 +156,11 @@ be keys and elements from the second column values."
         export-btn (app-button "Export" "Export all current variables to file" FontAwesome/DOWNLOAD)
         tip        (doto (Label. (str (.getHtml FontAwesome/LIGHTBULB_O) " Variables will not be pushed untill you <i>Promote</i> changes"))
                      (.setContentMode ContentMode/HTML))
-        page-len   (if (>= (count env) 10) 10 0)]
+        page-len   (if (>= (count env) 10) 10 0)
+        ;; convinient function for exporting table content, shared in few places
+        table-exporter #(table->map table "Variable" "Value")]
+    ;; export event is a bit different than usual e/with-button-event calls
+    (ie/attach-exporter export-btn table-exporter)
 
     (e/with-button-event add-btn
       (ve/show-win
@@ -176,7 +181,7 @@ be keys and elements from the second column values."
         (.removeItem table id)))
 
     (e/with-button-event prom-btn
-      (let [all (table->map table "Variable" "Value")]
+      (let [all (table-exporter)]
         (let [[release-id _] (x/set-env creds node all)]
           (display-notification "Variables applied"
                                 (format "Variables promoted to %s release." release-id)))))
