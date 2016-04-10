@@ -2,7 +2,7 @@
   "Main view with actions."
   (:import [com.vaadin.server Sizeable$Unit FontAwesome Page]
            [com.vaadin.ui LegacyWindow Label VerticalLayout HorizontalLayout Alignment HorizontalSplitPanel
-            Tree Label Table Button CssLayout Notification AbstractOrderedLayout Upload]
+            Tree Label Table Button CssLayout Notification AbstractOrderedLayout]
            com.vaadin.shared.ui.label.ContentMode
            com.vaadin.ui.themes.ValoTheme)
   (:require [pav-conf.conf :as c]
@@ -123,12 +123,14 @@ vector of properties with corresponding type."
 
 (defn- ^Button app-button
   "Button with some common options."
-  [^String name description icon]
-  (let [btn (doto (Button. name)
-              (.setIcon icon))]
-    (when description
-      (.setDescription btn description))
-    btn))
+  ([^String name description icon]
+     (let [btn (Button. name)]
+       (when description
+         (.setDescription btn description))
+       (when icon
+         (.setIcon btn icon))
+       btn))
+  ([^String name description] (app-button name description nil)))
 
 (defn- table-prop-value
   "Return value for given property/id in table."
@@ -164,20 +166,20 @@ be keys and elements from the second column values."
         edit-btn   (app-button "Edit" "Edit selected variable" FontAwesome/EDIT)
         del-btn    (app-button "Delete" "Delete selected variables" FontAwesome/MINUS)
         prom-btn   (app-button "Promote" "Push variables, creating new application release" FontAwesome/CLOUD_UPLOAD)
-        import-btn (doto (Upload. "Import" view)
-                     (.setDescription "Import variables from file")
-                     (.setIcon FontAwesome/UPLOAD))
-        export-btn (app-button "Export" "Export all current variables to file" FontAwesome/DOWNLOAD)
-        tip        (doto (Label. (str (.getHtml FontAwesome/LIGHTBULB_O) " Variables will not be pushed untill you <i>Promote</i> changes"))
+        import-btn (ie/upload-btn "Import"
+                                  "Import variables from EDN file format"
+                                  #(map->table table %)
+                                  (partial display-notification "Failed upload"))
+        export-btn (app-button "Export" "Export all current variables to file")
+        tip        (doto (Label.
+                          (str (.getHtml FontAwesome/LIGHTBULB_O)
+                               " Variables will not be pushed untill you <i>Promote</i> changes"))
                      (.setContentMode ContentMode/HTML))
         page-len   (if (>= (count env) 10) 10 0)
         ;; convinient function for exporting table content, shared in few places
         table-exporter #(table->map table "Variable" "Value")]
     ;; export event is a bit different than usual e/with-button-event calls
     (ie/attach-exporter export-btn table-exporter)
-
-    #_(e/with-button-event import-btn
-      (ie/handle-upload #(map->table table %) #(display-notification "Failed upload" %)))
 
     (e/with-button-event add-btn
       (ve/show-win
@@ -214,7 +216,8 @@ be keys and elements from the second column values."
 
     (doto btn-layout
       (.setSpacing true)
-      (.addComponent (group-buttons [import-btn export-btn]))
+      (.addComponent import-btn)
+      (.addComponent export-btn)
       (.addComponent (group-buttons [add-btn edit-btn del-btn]))
       (.addComponent prom-btn))
 
