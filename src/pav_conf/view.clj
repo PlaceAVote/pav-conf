@@ -2,7 +2,7 @@
   "Main view with actions."
   (:import [com.vaadin.server Sizeable$Unit FontAwesome Page]
            [com.vaadin.ui LegacyWindow Label VerticalLayout HorizontalLayout Alignment HorizontalSplitPanel
-            Tree Label Table Button CssLayout Notification AbstractOrderedLayout]
+            Tree Label Table Button CssLayout Notification AbstractOrderedLayout Upload]
            com.vaadin.shared.ui.label.ContentMode
            com.vaadin.ui.themes.ValoTheme)
   (:require [pav-conf.conf :as c]
@@ -46,6 +46,13 @@ vector of properties with corresponding type."
     (doseq [b buttons]
       (.addComponent layout b))
     layout))
+
+(defn- get-error
+  "Get meaningful error string from captured exception."
+  [ex]
+  (if-let [e (ex-data ex)]
+    (format "Error %s: (%s)" (:status e) (:body e))
+    (str "Error: " (.getMessage ^Exception ex))))
 
 ;;; right view
 
@@ -112,10 +119,7 @@ vector of properties with corresponding type."
       (update-rack-details-with-data view rack instances system))
     (catch Exception e
       (log/errorf e "Failed to get rack details from %s" rack)
-      (let [info (ex-data e)]
-        (display-error-on-component view (format "Error %s (%s)"
-                                                 (:status info)
-                                                 (:body info)))))))
+      (display-error-on-component view (get-error e)))))
 
 (defn- ^Button app-button
   "Button with some common options."
@@ -143,6 +147,14 @@ be keys and elements from the second column values."
                           (table-prop-value table id prop2)))
       ret)))
 
+(defn- map->table
+  "Convert map content to two columns table."
+  [^Table table mp]
+  (loop [mp mp, i 0]
+    (when-let [kv (first mp)]
+      (.addItem table (to-array kv) i)
+      (recur (rest mp) (inc i)))))
+
 (defn- update-app-details-with-data
   "Fetch application details using provided environment variables."
   [^VerticalLayout view creds node env]
@@ -152,7 +164,9 @@ be keys and elements from the second column values."
         edit-btn   (app-button "Edit" "Edit selected variable" FontAwesome/EDIT)
         del-btn    (app-button "Delete" "Delete selected variables" FontAwesome/MINUS)
         prom-btn   (app-button "Promote" "Push variables, creating new application release" FontAwesome/CLOUD_UPLOAD)
-        import-btn (app-button "Import" "Import variables from file" FontAwesome/UPLOAD)
+        import-btn (doto (Upload. "Import" view)
+                     (.setDescription "Import variables from file")
+                     (.setIcon FontAwesome/UPLOAD))
         export-btn (app-button "Export" "Export all current variables to file" FontAwesome/DOWNLOAD)
         tip        (doto (Label. (str (.getHtml FontAwesome/LIGHTBULB_O) " Variables will not be pushed untill you <i>Promote</i> changes"))
                      (.setContentMode ContentMode/HTML))
@@ -161,6 +175,9 @@ be keys and elements from the second column values."
         table-exporter #(table->map table "Variable" "Value")]
     ;; export event is a bit different than usual e/with-button-event calls
     (ie/attach-exporter export-btn table-exporter)
+
+    #_(e/with-button-event import-btn
+      (ie/handle-upload #(map->table table %) #(display-notification "Failed upload" %)))
 
     (e/with-button-event add-btn
       (ve/show-win
@@ -192,12 +209,8 @@ be keys and elements from the second column values."
       (.setPageLength page-len)
       (.setSelectable true)
       (.addContainerProperty "Variable" String nil)
-      (.addContainerProperty "Value" String nil))
-
-    (loop [env env, i 0]
-      (when-let [kv (first env)]
-        (.addItem table (to-array kv) i)
-        (recur (rest env) (inc i))))
+      (.addContainerProperty "Value" String nil)
+      (map->table env))
 
     (doto btn-layout
       (.setSpacing true)
@@ -224,10 +237,7 @@ be keys and elements from the second column values."
       (update-app-details-with-data view creds node env))
     (catch Exception e
       (log/errorf e "Failed to get application details for %s (rack: %s)" node rack)
-      (let [info (ex-data e)]
-        (display-error-on-component view (format "Error %s (%s)"
-                                                 (:status info)
-                                                 (:body info)))))))
+      (display-error-on-component view (get-error e)))))
 
 (defn- update-right-view!
   "Repaint right view with table and other details, depending on tree node.
