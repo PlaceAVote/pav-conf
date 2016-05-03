@@ -187,7 +187,8 @@ be keys and elements from the second column values."
          (.addItem table (to-array [(s/upper-case var) val]) nil))))
 
     (e/with-button-event edit-btn
-      (when-let [id (.getValue table)]
+      ;; we are dealing with multiselect table, so take into account only first element
+      (when-let [id (-> table .getValue first)]
         (let [k (table-prop-value table id "Variable")
               v (table-prop-value table id "Value")]
           (ve/show-win k v
